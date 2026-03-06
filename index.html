@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electromagnetic Wave Polarization — Griffiths Visualizer</title>
+
+<!-- Three.js for 3D visualization -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+<!-- KaTeX for equation rendering -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — Observatory Control Panel Theme
+   ============================================================ */
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #111822;
+  --bg-tertiary: #161e2a;
+  --bg-panel: #0d1219;
+  --border: #1e2a3a;
+  --border-glow: #2a4a6a;
+  --text-primary: #c8d6e5;
+  --text-secondary: #7a8da0;
+  --text-muted: #4a5a6a;
+  --accent-cyan: #00d4ff;
+  --accent-cyan-dim: #006a80;
+  --accent-magenta: #ff3a8c;
+  --accent-magenta-dim: #801d46;
+  --accent-green: #00ff88;
+  --accent-green-dim: #00803a;
+  --accent-amber: #ffb84d;
+  --accent-amber-dim: #805c26;
+  --glow-cyan: 0 0 12px rgba(0, 212, 255, 0.3);
+  --glow-magenta: 0 0 12px rgba(255, 58, 140, 0.3);
+  --glow-green: 0 0 12px rgba(0, 255, 136, 0.3);
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-serif: 'Source Serif 4', 'Georgia', serif;
+  --radius: 6px;
+  --transition: 0.2s ease;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+
+/* ============================================================
+   LAYOUT — Full viewport grid
+   ============================================================ */
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 280px 1fr 320px;
+  grid-template-areas:
+    "header header header"
+    "controls viz3d ellipse"
+    "equation equation equation";
+  height: 100vh;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* ============================================================
+   HEADER BAR
+   ============================================================ */
+#header {
+  grid-area: header;
+  background: var(--bg-secondary);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+#header h1 {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+#header h1 span {
+  color: var(--accent-cyan);
+  font-weight: 300;
+}
+
+#header .subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Presets bar */
+#presets {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#presets .preset-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-right: 4px;
+}
+
+.preset-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.preset-btn.active {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* ============================================================
+   CONTROLS PANEL
+   ============================================================ */
+#controls {
+  grid-area: controls;
+  background: var(--bg-panel);
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.control-section {
+  margin-bottom: 18px;
+}
+
+.section-header {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-header .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.section-header .dot.cyan { background: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+.section-header .dot.magenta { background: var(--accent-magenta); box-shadow: var(--glow-magenta); }
+.section-header .dot.green { background: var(--accent-green); box-shadow: var(--glow-green); }
+.section-header .dot.amber { background: var(--accent-amber); }
+
+/* Slider control */
+.param-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.param-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.param-label sub { font-size: 9px; }
+
+.param-value {
+  font-size: 11px;
+  color: var(--accent-cyan);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 5px;
+  width: 52px;
+}
+
+input[type="number"] {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 5px;
+  width: 52px;
+  text-align: right;
+  outline: none;
+}
+
+input[type="number"]:focus {
+  border-color: var(--accent-cyan);
+}
+
+/* Custom range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+  outline: none;
+  border: 1px solid var(--border);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--glow-cyan);
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* Animation controls */
+.anim-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.anim-btn {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.anim-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.anim-btn.playing {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Polarization detection badge */
+#polarization-badge {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+#polarization-badge .badge-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+#polarization-badge .badge-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-green);
+  text-shadow: var(--glow-green);
+}
+
+#polarization-badge .badge-detail {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   3D VISUALIZATION PANEL
+   ============================================================ */
+#viz3d {
+  grid-area: viz3d;
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+#viz3d canvas { display: block; }
+
+#viz3d-label {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+#viz3d-help {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* ============================================================
+   POLARIZATION ELLIPSE PANEL
+   ============================================================ */
+#ellipse-panel {
+  grid-area: ellipse;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+#ellipse-header {
+  padding: 10px 14px;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#ellipse-canvas-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+#ellipse-canvas {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+#ellipse-info {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+#ellipse-info .info-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+#ellipse-info .info-val {
+  color: var(--accent-cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   EQUATION BAR
+   ============================================================ */
+#equation-bar {
+  grid-area: equation;
+  background: var(--bg-secondary);
+  padding: 8px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  overflow-x: auto;
+}
+
+#equation-bar .katex { font-size: 15px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+  #app {
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "header header"
+      "controls viz3d"
+      "controls ellipse"
+      "equation equation";
+  }
+  #ellipse-panel { min-height: 300px; }
+}
+
+@media (max-width: 760px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 50vh 300px auto;
+    grid-template-areas:
+      "header"
+      "controls"
+      "viz3d"
+      "ellipse"
+      "equation";
+    overflow-y: auto;
+  }
+  #controls { max-height: 300px; }
+  body { overflow: auto; }
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ========== HEADER ========== -->
+  <header id="header">
+    <div>
+      <h1>Polarization <span>Visualizer</span></h1>
+      <div class="subtitle">Griffiths · Introduction to Electrodynamics · Ch. 9</div>
+    </div>
+    <div id="presets">
+      <span class="preset-label">Presets</span>
+      <button class="preset-btn" data-preset="linearX">Linear X</button>
+      <button class="preset-btn" data-preset="linearY">Linear Y</button>
+      <button class="preset-btn" data-preset="linear45">Linear 45°</button>
+      <button class="preset-btn" data-preset="rhc">Right Circular</button>
+      <button class="preset-btn" data-preset="lhc">Left Circular</button>
+      <button class="preset-btn" data-preset="elliptical">Elliptical</button>
+      <button class="preset-btn" data-preset="reset" style="border-color:var(--accent-amber-dim);color:var(--accent-amber);">Reset</button>
+    </div>
+  </header>
+
+  <!-- ========== CONTROLS ========== -->
+  <section id="controls">
+
+    <!-- Amplitude -->
+    <div class="control-section">
+      <div class="section-header"><span class="dot cyan"></span> Amplitude</div>
+      <div class="param-row">
+        <span class="param-label">E<sub>x</sub></span>
+        <input type="range" id="slider-Ex" min="0" max="2" step="0.01" value="1">
+        <input type="number" id="num-Ex" min="0" max="2" step="0.01" value="1">
+      </div>
+      <div class="param-row">
+        <span class="param-label">E<sub>y</sub></span>
+        <input type="range" id="slider-Ey" min="0" max="2" step="0.01" value="1">
+        <input type="number" id="num-Ey" min="0" max="2" step="0.01" value="1">
+      </div>
+    </div>
+
+    <!-- Phase -->
+    <div class="control-section">
+      <div class="section-header"><span class="dot magenta"></span> Phase Difference</div>
+      <div class="param-row">
+        <span class="param-label">δ</span>
+        <input type="range" id="slider-delta" min="-3.14159" max="3.14159" step="0.01" value="0">
+        <input type="number" id="num-delta" min="-3.14159" max="3.14159" step="0.01" value="0">
+      </div>
+      <div style="text-align:center;font-size:10px;color:var(--text-muted);margin-top:-4px;">
+        −π ← → +π
+      </div>
+    </div>
+
+    <!-- Wave Properties -->
+    <div class="control-section">
+      <div class="section-header"><span class="dot green"></span> Wave Properties</div>
+      <div class="param-row">
+        <span class="param-label">k</span>
+        <input type="range" id="slider-k" min="0.5" max="4" step="0.1" value="1.5">
+        <input type="number" id="num-k" min="0.5" max="4" step="0.1" value="1.5">
+      </div>
+      <div class="param-row">
+        <span class="param-label">ω</span>
+        <input type="range" id="slider-omega" min="0.5" max="5" step="0.1" value="2">
+        <input type="number" id="num-omega" min="0.5" max="5" step="0.1" value="2">
+      </div>
+    </div>
+
+    <!-- Propagation Direction -->
+    <div class="control-section">
+      <div class="section-header"><span class="dot amber"></span> Propagation Direction</div>
+      <div class="param-row">
+        <span class="param-label">θ</span>
+        <input type="range" id="slider-theta" min="0" max="1.5708" step="0.01" value="0">
+        <input type="number" id="num-theta" min="0" max="1.5708" step="0.01" value="0">
+      </div>
+      <div class="param-row">
+        <span class="param-label">φ</span>
+        <input type="range" id="slider-phi" min="0" max="6.2832" step="0.01" value="0">
+        <input type="number" id="num-phi" min="0" max="6.2832" step="0.01" value="0">
+      </div>
+    </div>
+
+    <!-- Animation -->
+    <div class="control-section">
+      <div class="section-header"><span class="dot cyan"></span> Animation</div>
+      <div class="param-row">
+        <span class="param-label">Speed</span>
+        <input type="range" id="slider-speed" min="0.1" max="3" step="0.1" value="1">
+        <input type="number" id="num-speed" min="0.1" max="3" step="0.1" value="1">
+      </div>
+      <div class="anim-controls">
+        <button class="anim-btn playing" id="btn-playpause">▶ Play</button>
+        <button class="anim-btn" id="btn-reset-time">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- Polarization Detection -->
+    <div id="polarization-badge">
+      <div class="badge-label">Detected Polarization</div>
+      <div class="badge-value" id="pol-type">Linear</div>
+      <div class="badge-detail" id="pol-detail">δ = 0 → linearly polarized along 45°</div>
+    </div>
+
+  </section>
+
+  <!-- ========== 3D VISUALIZATION ========== -->
+  <div id="viz3d">
+    <div id="viz3d-label">3D Wave Propagation</div>
+    <div id="viz3d-help">Drag to orbit · Scroll to zoom</div>
+  </div>
+
+  <!-- ========== ELLIPSE PANEL ========== -->
+  <div id="ellipse-panel">
+    <div id="ellipse-header">
+      <span>Polarization Ellipse</span>
+      <span id="rotation-label" style="color:var(--accent-green);">—</span>
+    </div>
+    <div id="ellipse-canvas-container">
+      <canvas id="ellipse-canvas" width="280" height="280"></canvas>
+    </div>
+    <div id="ellipse-info">
+      <div class="info-row"><span>Semi-major axis</span><span class="info-val" id="info-a">—</span></div>
+      <div class="info-row"><span>Semi-minor axis</span><span class="info-val" id="info-b">—</span></div>
+      <div class="info-row"><span>Tilt angle ψ</span><span class="info-val" id="info-psi">—</span></div>
+      <div class="info-row"><span>Eccentricity</span><span class="info-val" id="info-ecc">—</span></div>
+    </div>
+  </div>
+
+  <!-- ========== EQUATION BAR ========== -->
+  <div id="equation-bar">
+    <span id="equation-display"></span>
+  </div>
+
+</div>
+
+<script>
+/* ================================================================
+   PHYSICS ENGINE — physics.js
+   Electromagnetic wave polarization model per Griffiths Ch. 9
+   
+   Reference: Griffiths, Introduction to Electrodynamics, 4th Ed.
+   Equation 9.44 — general monochromatic plane wave:
+   
+     E(z,t) = Ex cos(kz − ωt) x̂ + Ey cos(kz − ωt + δ) ŷ
+   
+   The polarization state is determined entirely by Ex, Ey, and δ.
+   ================================================================ */
+
+const Physics = (() => {
+  
+  /**
+   * Compute E-field components at position z and time t.
+   * 
+   * Griffiths Eq. 9.44:
+   *   E_x(z,t) = Ex * cos(kz - ωt)
+   *   E_y(z,t) = Ey * cos(kz - ωt + δ)
+   *
+   * @param {Object} params - {Ex, Ey, k, omega, delta}
+   * @param {number} z - position along propagation axis
+   * @param {number} t - time
+   * @returns {Object} {x, y} field components
+   */
+  function electricField(params, z, t) {
+    const phase = params.k * z - params.omega * t;
+    return {
+      x: params.Ex * Math.cos(phase),
+      y: params.Ey * Math.cos(phase + params.delta)
+    };
+  }
+
+  /**
+   * Detect the polarization state from the given parameters.
+   *
+   * Griffiths §9.4.1 — Polarization:
+   * - Linear: δ = 0 or π (E oscillates along a fixed line)
+   * - Circular: Ex = Ey and δ = ±π/2 (E-field tip traces a circle)
+   * - Elliptical: general case
+   *
+   * Handedness (Griffiths convention, physics convention):
+   *   The angular momentum of the E-field determines handedness.
+   *   At z = 0: E(t) = (Ex cos(ωt), Ey cos(ωt − δ))
+   *   Cross product ∝ −sin(δ):
+   *     sin(δ) > 0 → clockwise from +z view → Left-hand circular
+   *     sin(δ) < 0 → counter-clockwise from +z → Right-hand circular
+   *
+   * @param {Object} params
+   * @returns {Object} {type, detail, rotation}
+   */
+  function detectPolarization(params) {
+    const { Ex, Ey, delta } = params;
+    const eps = 0.05; // tolerance for detection
+    const PI = Math.PI;
+
+    // Normalize delta to [-π, π]
+    let d = ((delta % (2 * PI)) + 3 * PI) % (2 * PI) - PI;
+
+    // Check if either amplitude is ~0
+    if (Ex < eps && Ey < eps) {
+      return { type: 'Zero Field', detail: 'Both amplitudes are zero', rotation: 'none' };
+    }
+    if (Ex < eps) {
+      return { type: 'Linear', detail: 'Polarized along ŷ (E_x ≈ 0)', rotation: 'none' };
+    }
+    if (Ey < eps) {
+      return { type: 'Linear', detail: 'Polarized along x̂ (E_y ≈ 0)', rotation: 'none' };
+    }
+
+    // Check for linear polarization: δ ≈ 0 or ±π
+    const isLinear = Math.abs(Math.sin(d)) < Math.sin(eps);
+    
+    // Check for equal amplitudes
+    const isEqualAmp = Math.abs(Ex - Ey) / Math.max(Ex, Ey) < eps;
+
+    // Determine rotation direction from sign of sin(δ)
+    // Griffiths convention: sin(δ) > 0 → LH, sin(δ) < 0 → RH
+    const sinD = Math.sin(d);
+    let rotation = 'none';
+    if (Math.abs(sinD) > Math.sin(eps)) {
+      rotation = sinD > 0 ? 'left' : 'right';
+    }
+
+    if (isLinear) {
+      const angle = Math.atan2(Ey * Math.cos(d), Ex) * 180 / PI;
+      return {
+        type: 'Linear',
+        detail: `Polarized at ${angle.toFixed(1)}° from x̂`,
+        rotation: 'none'
+      };
+    }
+
+    // Check for circular: equal amplitudes and |δ| ≈ π/2
+    const isCircularPhase = Math.abs(Math.abs(d) - PI / 2) < eps;
+    
+    if (isEqualAmp && isCircularPhase) {
+      const hand = rotation === 'right' ? 'Right-Hand' : 'Left-Hand';
+      return {
+        type: `${hand} Circular`,
+        detail: `E_x = E_y, δ = ${(d / PI).toFixed(2)}π`,
+        rotation
+      };
+    }
+
+    // General elliptical
+    const hand = rotation === 'right' ? 'RH' : rotation === 'left' ? 'LH' : '';
+    return {
+      type: `${hand} Elliptical`,
+      detail: `E_x=${Ex.toFixed(2)}, E_y=${Ey.toFixed(2)}, δ=${(d / PI).toFixed(2)}π`,
+      rotation
+    };
+  }
+
+  /**
+   * Compute polarization ellipse parameters.
+   *
+   * The parametric ellipse E_x = Ex cos(θ), E_y = Ey cos(θ + δ) traces an
+   * ellipse whose orientation angle ψ satisfies (Griffiths Eq. 9.46):
+   *
+   *   tan(2ψ) = (2 Ex Ey cos δ) / (Ex² − Ey²)
+   *
+   * The semi-axes a, b of the ellipse can be found from:
+   *   a² + b² = Ex² + Ey²
+   *   a² − b² = √[(Ex²−Ey²)² + (2ExEy cosδ)²]  ... when Ex ≠ Ey
+   *   ab = Ex Ey |sin δ|
+   *
+   * @param {Object} params
+   * @returns {Object} {a, b, psi, eccentricity}
+   */
+  function ellipseParams(params) {
+    const { Ex, Ey, delta } = params;
+    const cosD = Math.cos(delta);
+    const sinD = Math.sin(delta);
+
+    // Tilt angle of the polarization ellipse (Griffiths Eq. 9.46)
+    let psi;
+    if (Math.abs(Ex * Ex - Ey * Ey) < 1e-10) {
+      psi = (Math.abs(cosD) < 1e-10) ? 0 : Math.PI / 4 * Math.sign(cosD);
+    } else {
+      psi = 0.5 * Math.atan2(2 * Ex * Ey * cosD, Ex * Ex - Ey * Ey);
+    }
+
+    // Semi-axes from parametric analysis
+    const sumSq = Ex * Ex + Ey * Ey;
+    const diffSq = Ex * Ex - Ey * Ey;
+    const cross = 2 * Ex * Ey * cosD;
+    const D = Math.sqrt(diffSq * diffSq + cross * cross);
+
+    const aSq = (sumSq + D) / 2;
+    const bSq = (sumSq - D) / 2;
+    const a = Math.sqrt(Math.max(aSq, 0));
+    const b = Math.sqrt(Math.max(bSq, 0));
+
+    const ecc = a > 1e-10 ? Math.sqrt(1 - (b * b) / (a * a)) : 0;
+
+    return { a, b, psi, eccentricity: ecc };
+  }
+
+  return { electricField, detectPolarization, ellipseParams };
+})();
+
+
+/* ================================================================
+   STATE — Shared application state
+   ================================================================ */
+const State = {
+  // Physics parameters
+  Ex: 1.0,
+  Ey: 1.0,
+  k: 1.5,
+  omega: 2.0,
+  delta: 0,
+  theta: 0,    // propagation polar angle
+  phi: 0,      // propagation azimuth
+  
+  // Animation
+  time: 0,
+  speed: 1.0,
+  playing: true,
+  
+  // Derived
+  get params() {
+    return { Ex: this.Ex, Ey: this.Ey, k: this.k, omega: this.omega, delta: this.delta };
+  }
+};
+
+
+/* ================================================================
+   PRESETS — Common polarization states (Griffiths §9.4.1)
+   ================================================================ */
+const Presets = {
+  linearX:     { Ex: 1, Ey: 0,   delta: 0,              label: 'Linear X' },
+  linearY:     { Ex: 0, Ey: 1,   delta: 0,              label: 'Linear Y' },
+  linear45:    { Ex: 1, Ey: 1,   delta: 0,              label: 'Linear 45°' },
+  // RHC: δ = −π/2 per Griffiths convention (counter-clockwise from +z)
+  rhc:         { Ex: 1, Ey: 1,   delta: -Math.PI / 2,   label: 'Right-Hand Circular' },
+  // LHC: δ = +π/2 per Griffiths convention (clockwise from +z)
+  lhc:         { Ex: 1, Ey: 1,   delta: Math.PI / 2,    label: 'Left-Hand Circular' },
+  elliptical:  { Ex: 1, Ey: 0.6, delta: Math.PI / 3,    label: 'Elliptical' },
+  reset:       { Ex: 1, Ey: 1,   delta: 0, k: 1.5, omega: 2, theta: 0, phi: 0, speed: 1, label: 'Reset' }
+};
+
+
+/* ================================================================
+   THREE.JS 3D VISUALIZATION — visualization3d.js
+   
+   Renders the propagating wave with E-field arrows along the
+   propagation axis, showing how the field vector evolves in space.
+   ================================================================ */
+
+const Viz3D = (() => {
+  let scene, camera, renderer, animationId;
+  let arrows = [];
+  let trailLine, axisLine;
+  const NUM_ARROWS = 60;
+  const Z_RANGE = 14;
+  const container = document.getElementById('viz3d');
+
+  // Color for x-component and y-component
+  const COLOR_X = new THREE.Color(0x00d4ff);  // cyan
+  const COLOR_Y = new THREE.Color(0xff3a8c);  // magenta
+  const COLOR_COMBINED = new THREE.Color(0x00ff88); // green
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0e14);
+
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
+    camera.position.set(8, 5, 8);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // Ambient light
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    dirLight.position.set(5, 10, 5);
+    scene.add(dirLight);
+
+    // Grid on the z=0 plane (XY plane)
+    addGrid();
+    addAxes();
+    createArrows();
+    createTrailLine();
+
+    // Simple orbit controls (manual implementation to avoid import)
+    initOrbitControls();
+
+    window.addEventListener('resize', onResize);
+  }
+
+  function addGrid() {
+    // XZ ground grid (subtle)
+    const gridHelper = new THREE.GridHelper(20, 20, 0x1a2a3a, 0x111e2a);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.z = -Z_RANGE / 2;
+    scene.add(gridHelper);
+  }
+
+  function addAxes() {
+    const mat = new THREE.LineBasicMaterial({ color: 0x2a4a6a });
+    
+    // Z-axis (propagation)
+    const zGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, -Z_RANGE / 2),
+      new THREE.Vector3(0, 0, Z_RANGE / 2)
+    ]);
+    const zLine = new THREE.Line(zGeo, new THREE.LineBasicMaterial({ color: 0x3a5a7a }));
+    scene.add(zLine);
+
+    // X-axis
+    const xGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-3, 0, -Z_RANGE / 2),
+      new THREE.Vector3(3, 0, -Z_RANGE / 2)
+    ]);
+    scene.add(new THREE.Line(xGeo, mat));
+
+    // Y-axis
+    const yGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, -3, -Z_RANGE / 2),
+      new THREE.Vector3(0, 3, -Z_RANGE / 2)
+    ]);
+    scene.add(new THREE.Line(yGeo, mat));
+
+    // Axis labels using sprites
+    addLabel('z (propagation)', 0, 0.3, Z_RANGE / 2 + 0.3, 0x3a5a7a);
+    addLabel('x', 3.3, 0, -Z_RANGE / 2, 0x00d4ff);
+    addLabel('y', 0, 3.3, -Z_RANGE / 2, 0xff3a8c);
+  }
+
+  function addLabel(text, x, y, z, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '24px JetBrains Mono, monospace';
+    ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+    ctx.fillText(text, 4, 40);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(x, y, z);
+    sprite.scale.set(2, 0.5, 1);
+    scene.add(sprite);
+  }
+
+  function createArrows() {
+    // Clear old arrows
+    arrows.forEach(a => { scene.remove(a.x); scene.remove(a.y); scene.remove(a.combined); });
+    arrows = [];
+
+    for (let i = 0; i < NUM_ARROWS; i++) {
+      const z = -Z_RANGE / 2 + (Z_RANGE * i) / (NUM_ARROWS - 1);
+      
+      // Combined E-field arrow
+      const arrowCombined = new THREE.ArrowHelper(
+        new THREE.Vector3(1, 0, 0), 
+        new THREE.Vector3(0, 0, z),
+        1, 0x00ff88, 0.12, 0.08
+      );
+      scene.add(arrowCombined);
+
+      arrows.push({ z, combined: arrowCombined });
+    }
+  }
+
+  function createTrailLine() {
+    // Trail showing the wave envelope
+    const trailPointsX = [];
+    const trailPointsY = [];
+    const trailPointsCombined = [];
+    
+    const N = 200;
+    for (let i = 0; i < N; i++) {
+      trailPointsX.push(new THREE.Vector3(0, 0, 0));
+      trailPointsY.push(new THREE.Vector3(0, 0, 0));
+      trailPointsCombined.push(new THREE.Vector3(0, 0, 0));
+    }
+
+    const geoX = new THREE.BufferGeometry().setFromPoints(trailPointsX);
+    const geoY = new THREE.BufferGeometry().setFromPoints(trailPointsY);
+
+    const lineX = new THREE.Line(geoX, new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.5 }));
+    const lineY = new THREE.Line(geoY, new THREE.LineBasicMaterial({ color: 0xff3a8c, transparent: true, opacity: 0.5 }));
+
+    scene.add(lineX);
+    scene.add(lineY);
+
+    trailLine = { x: lineX, y: lineY, N };
+  }
+
+  function update() {
+    const p = State.params;
+    const t = State.time;
+
+    // Update arrows
+    for (const arrow of arrows) {
+      const E = Physics.electricField(p, arrow.z, t);
+      const len = Math.sqrt(E.x * E.x + E.y * E.y);
+      
+      if (len > 0.001) {
+        arrow.combined.setDirection(new THREE.Vector3(E.x, E.y, 0).normalize());
+        arrow.combined.setLength(len * 2, 0.15, 0.08);
+        arrow.combined.visible = true;
+        // Color interpolation based on E components
+        const ratio = Math.abs(E.y) / (Math.abs(E.x) + Math.abs(E.y) + 0.001);
+        const col = new THREE.Color();
+        col.lerpColors(COLOR_X, COLOR_Y, ratio);
+        arrow.combined.setColor(col);
+      } else {
+        arrow.combined.visible = false;
+      }
+    }
+
+    // Update trail lines
+    const N = trailLine.N;
+    const posX = trailLine.x.geometry.attributes.position;
+    const posY = trailLine.y.geometry.attributes.position;
+
+    for (let i = 0; i < N; i++) {
+      const z = -Z_RANGE / 2 + (Z_RANGE * i) / (N - 1);
+      const E = Physics.electricField(p, z, t);
+      
+      posX.setXYZ(i, E.x * 2, 0, z);
+      posY.setXYZ(i, 0, E.y * 2, z);
+    }
+
+    posX.needsUpdate = true;
+    posY.needsUpdate = true;
+
+    renderer.render(scene, camera);
+  }
+
+  // Simple orbit controls
+  function initOrbitControls() {
+    let isDragging = false;
+    let prevMouse = { x: 0, y: 0 };
+    let spherical = { theta: Math.PI / 4, phi: Math.PI / 6, radius: 14 };
+
+    function updateCamera() {
+      camera.position.x = spherical.radius * Math.sin(spherical.theta) * Math.cos(spherical.phi);
+      camera.position.y = spherical.radius * Math.sin(spherical.phi);
+      camera.position.z = spherical.radius * Math.cos(spherical.theta) * Math.cos(spherical.phi);
+      camera.lookAt(0, 0, 0);
+    }
+
+    updateCamera();
+
+    const el = renderer.domElement;
+    
+    el.addEventListener('mousedown', e => {
+      isDragging = true;
+      prevMouse = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouse.x;
+      const dy = e.clientY - prevMouse.y;
+      spherical.theta -= dx * 0.005;
+      spherical.phi = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, spherical.phi + dy * 0.005));
+      prevMouse = { x: e.clientX, y: e.clientY };
+      updateCamera();
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      spherical.radius = Math.max(5, Math.min(30, spherical.radius + e.deltaY * 0.01));
+      updateCamera();
+    }, { passive: false });
+
+    // Touch support
+    el.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    });
+
+    el.addEventListener('touchmove', e => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - prevMouse.x;
+      const dy = e.touches[0].clientY - prevMouse.y;
+      spherical.theta -= dx * 0.005;
+      spherical.phi = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, spherical.phi + dy * 0.005));
+      prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      updateCamera();
+    });
+
+    el.addEventListener('touchend', () => { isDragging = false; });
+  }
+
+  function onResize() {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+
+  return { init, update };
+})();
+
+
+/* ================================================================
+   POLARIZATION ELLIPSE PLOT — ellipsePlot.js
+   
+   Canvas-based 2D plot showing the trajectory of the E-field tip
+   in the x-y plane (at z = 0), i.e. the polarization ellipse.
+   ================================================================ */
+
+const EllipsePlot = (() => {
+  const canvas = document.getElementById('ellipse-canvas');
+  const ctx = canvas.getContext('2d');
+  let trailPoints = [];
+  const MAX_TRAIL = 300;
+
+  /**
+   * Draw the polarization ellipse and current E-field vector.
+   * At z = 0, the field is:
+   *   E_x(t) = Ex cos(ωt)
+   *   E_y(t) = Ey cos(ωt − δ)
+   * (using the identity cos(-ωt + δ) = cos(ωt − δ))
+   */
+  function update() {
+    const W = canvas.width;
+    const H = canvas.height;
+    const cx = W / 2;
+    const cy = H / 2;
+    const scale = Math.min(W, H) / 5.5; // Scale: 1 unit ≈ scale pixels
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    ctx.fillStyle = '#0a0e14';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = '#1a2535';
+    ctx.lineWidth = 0.5;
+    for (let i = -2; i <= 2; i++) {
+      // Vertical
+      ctx.beginPath();
+      ctx.moveTo(cx + i * scale, 0);
+      ctx.lineTo(cx + i * scale, H);
+      ctx.stroke();
+      // Horizontal
+      ctx.beginPath();
+      ctx.moveTo(0, cy + i * scale);
+      ctx.lineTo(W, cy + i * scale);
+      ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = '#2a4a6a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(W, cy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, H);
+    ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = '11px JetBrains Mono';
+    ctx.fillText('Eₓ', W - 22, cy - 6);
+    ctx.fillStyle = '#ff3a8c';
+    ctx.fillText('Eᵧ', cx + 6, 14);
+
+    // Scale marks
+    ctx.fillStyle = '#4a5a6a';
+    ctx.font = '9px JetBrains Mono';
+    for (let i = -2; i <= 2; i++) {
+      if (i === 0) continue;
+      ctx.fillText(i.toString(), cx + i * scale - 3, cy + 12);
+      ctx.fillText((-i).toString(), cx + 6, cy + i * scale + 3);
+    }
+
+    const p = State.params;
+    const t = State.time;
+
+    // Draw the full ellipse trace (theoretical)
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
+    ctx.lineWidth = 1;
+    const steps = 200;
+    for (let i = 0; i <= steps; i++) {
+      const angle = (2 * Math.PI * i) / steps;
+      const ex = p.Ex * Math.cos(angle);
+      const ey = p.Ey * Math.cos(angle + p.delta); // note: cos(θ + δ) at z=0
+      const px = cx + ex * scale;
+      const py = cy - ey * scale; // canvas y is flipped
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Current E-field point
+    const E = Physics.electricField(p, 0, t);
+    const px = cx + E.x * scale;
+    const py = cy - E.y * scale;
+
+    // Add to trail
+    trailPoints.push({ x: px, y: py });
+    if (trailPoints.length > MAX_TRAIL) trailPoints.shift();
+
+    // Draw trail with fading
+    if (trailPoints.length > 1) {
+      for (let i = 1; i < trailPoints.length; i++) {
+        const alpha = (i / trailPoints.length) * 0.8;
+        ctx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(trailPoints[i - 1].x, trailPoints[i - 1].y);
+        ctx.lineTo(trailPoints[i].x, trailPoints[i].y);
+        ctx.stroke();
+      }
+    }
+
+    // Draw current E-field vector as an arrow from origin
+    const arrowLen = Math.sqrt(E.x * E.x + E.y * E.y);
+    if (arrowLen > 0.01) {
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+
+      // Arrowhead
+      const angle = Math.atan2(cy - py, px - cx);
+      const headLen = 8;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - headLen * Math.cos(angle - 0.4), py + headLen * Math.sin(angle - 0.4));
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - headLen * Math.cos(angle + 0.4), py + headLen * Math.sin(angle + 0.4));
+      ctx.stroke();
+    }
+
+    // Current point dot
+    ctx.beginPath();
+    ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#00ff88';
+    ctx.fill();
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Draw rotation direction arrow (if rotating)
+    const pol = Physics.detectPolarization(p);
+    if (pol.rotation !== 'none') {
+      drawRotationArrow(cx, cy, scale, pol.rotation);
+    }
+
+    // Update ellipse info panel
+    updateEllipseInfo();
+  }
+
+  function drawRotationArrow(cx, cy, scale, rotation) {
+    const r = Math.max(State.Ex, State.Ey) * scale + 15;
+    const startAngle = -Math.PI / 4;
+    const endAngle = startAngle + (rotation === 'right' ? -Math.PI / 2 : Math.PI / 2);
+    
+    ctx.strokeStyle = 'rgba(255, 184, 77, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle, rotation === 'right');
+    ctx.stroke();
+
+    // Arrowhead at the end
+    const ax = cx + r * Math.cos(endAngle);
+    const ay = cy + r * Math.sin(endAngle);
+    const tangent = rotation === 'right' ? endAngle + Math.PI / 2 : endAngle - Math.PI / 2;
+    const hl = 7;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - hl * Math.cos(tangent - 0.5), ay - hl * Math.sin(tangent - 0.5));
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - hl * Math.cos(tangent + 0.5), ay - hl * Math.sin(tangent + 0.5));
+    ctx.stroke();
+  }
+
+  function updateEllipseInfo() {
+    const ep = Physics.ellipseParams(State.params);
+    document.getElementById('info-a').textContent = ep.a.toFixed(3);
+    document.getElementById('info-b').textContent = ep.b.toFixed(3);
+    document.getElementById('info-psi').textContent = (ep.psi * 180 / Math.PI).toFixed(1) + '°';
+    document.getElementById('info-ecc').textContent = ep.eccentricity.toFixed(3);
+  }
+
+  function clearTrail() {
+    trailPoints = [];
+  }
+
+  function resize() {
+    const container = document.getElementById('ellipse-canvas-container');
+    const size = Math.min(container.clientWidth - 20, container.clientHeight - 20, 300);
+    canvas.width = size;
+    canvas.height = size;
+  }
+
+  return { update, clearTrail, resize };
+})();
+
+
+/* ================================================================
+   UI CONTROLLER — main.js
+   Binds controls, manages animation loop, updates displays
+   ================================================================ */
+
+const UI = (() => {
+  // Parameter definitions: [stateKey, sliderId, numId, format]
+  const paramMap = [
+    ['Ex',    'slider-Ex',    'num-Ex'],
+    ['Ey',    'slider-Ey',    'num-Ey'],
+    ['delta', 'slider-delta', 'num-delta'],
+    ['k',     'slider-k',     'num-k'],
+    ['omega', 'slider-omega', 'num-omega'],
+    ['theta', 'slider-theta', 'num-theta'],
+    ['phi',   'slider-phi',   'num-phi'],
+    ['speed', 'slider-speed', 'num-speed'],
+  ];
+
+  function init() {
+    // Bind all slider/number pairs
+    for (const [key, slId, numId] of paramMap) {
+      const slider = document.getElementById(slId);
+      const num = document.getElementById(numId);
+
+      slider.addEventListener('input', () => {
+        const val = parseFloat(slider.value);
+        State[key] = val;
+        num.value = val.toFixed(2);
+        onParamChange();
+      });
+
+      num.addEventListener('change', () => {
+        let val = parseFloat(num.value);
+        val = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), val));
+        State[key] = val;
+        slider.value = val;
+        num.value = val.toFixed(2);
+        onParamChange();
+      });
+    }
+
+    // Presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = Presets[btn.dataset.preset];
+        if (!preset) return;
+        applyPreset(preset);
+        // Highlight active
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        if (btn.dataset.preset !== 'reset') btn.classList.add('active');
+      });
+    });
+
+    // Play/Pause
+    document.getElementById('btn-playpause').addEventListener('click', () => {
+      State.playing = !State.playing;
+      const btn = document.getElementById('btn-playpause');
+      btn.textContent = State.playing ? '❚❚ Pause' : '▶ Play';
+      btn.classList.toggle('playing', State.playing);
+    });
+
+    // Reset time
+    document.getElementById('btn-reset-time').addEventListener('click', () => {
+      State.time = 0;
+      EllipsePlot.clearTrail();
+    });
+
+    // Initial updates
+    onParamChange();
+    EllipsePlot.resize();
+    window.addEventListener('resize', () => EllipsePlot.resize());
+  }
+
+  function applyPreset(preset) {
+    for (const key of ['Ex', 'Ey', 'delta', 'k', 'omega', 'theta', 'phi', 'speed']) {
+      if (preset[key] !== undefined) {
+        State[key] = preset[key];
+        const slider = document.getElementById(`slider-${key === 'delta' ? 'delta' : key === 'omega' ? 'omega' : key}`);
+        const num = document.getElementById(`num-${key === 'delta' ? 'delta' : key === 'omega' ? 'omega' : key}`);
+        // Map state key to DOM id suffix
+        const idMap = { Ex: 'Ex', Ey: 'Ey', delta: 'delta', k: 'k', omega: 'omega', theta: 'theta', phi: 'phi', speed: 'speed' };
+        const sl = document.getElementById(`slider-${idMap[key]}`);
+        const nm = document.getElementById(`num-${idMap[key]}`);
+        if (sl) sl.value = preset[key];
+        if (nm) nm.value = preset[key].toFixed(2);
+      }
+    }
+    State.time = 0;
+    EllipsePlot.clearTrail();
+    onParamChange();
+  }
+
+  function onParamChange() {
+    updatePolarizationBadge();
+    updateEquation();
+  }
+
+  function updatePolarizationBadge() {
+    const pol = Physics.detectPolarization(State.params);
+    document.getElementById('pol-type').textContent = pol.type;
+    document.getElementById('pol-detail').textContent = pol.detail;
+    
+    // Color coding
+    const badge = document.getElementById('pol-type');
+    if (pol.type.includes('Circular')) {
+      badge.style.color = 'var(--accent-magenta)';
+      badge.style.textShadow = 'var(--glow-magenta)';
+    } else if (pol.type === 'Linear') {
+      badge.style.color = 'var(--accent-cyan)';
+      badge.style.textShadow = 'var(--glow-cyan)';
+    } else {
+      badge.style.color = 'var(--accent-green)';
+      badge.style.textShadow = 'var(--glow-green)';
+    }
+
+    // Rotation label
+    const rotLabel = document.getElementById('rotation-label');
+    if (pol.rotation === 'right') {
+      rotLabel.textContent = '↺ RH (CCW from +z)';
+      rotLabel.style.color = 'var(--accent-amber)';
+    } else if (pol.rotation === 'left') {
+      rotLabel.textContent = '↻ LH (CW from +z)';
+      rotLabel.style.color = 'var(--accent-magenta)';
+    } else {
+      rotLabel.textContent = '— No rotation';
+      rotLabel.style.color = 'var(--text-muted)';
+    }
+  }
+
+  /**
+   * Update the live equation display using KaTeX.
+   * Shows the equation with current parameter values substituted:
+   *   E(z,t) = Ex cos(kz − ωt) x̂ + Ey cos(kz − ωt + δ) ŷ
+   */
+  function updateEquation() {
+    const { Ex, Ey, k, omega, delta } = State;
+    const PI = Math.PI;
+
+    // Format delta as fraction of pi if close
+    let deltaStr;
+    const dOverPi = delta / PI;
+    if (Math.abs(delta) < 0.01) deltaStr = '0';
+    else if (Math.abs(dOverPi - 0.5) < 0.02) deltaStr = '\\frac{\\pi}{2}';
+    else if (Math.abs(dOverPi + 0.5) < 0.02) deltaStr = '-\\frac{\\pi}{2}';
+    else if (Math.abs(dOverPi - 1) < 0.02) deltaStr = '\\pi';
+    else if (Math.abs(dOverPi + 1) < 0.02) deltaStr = '-\\pi';
+    else deltaStr = delta.toFixed(2);
+
+    // Build phase string for y-component
+    let yPhaseStr;
+    if (Math.abs(delta) < 0.01) {
+      yPhaseStr = `${k.toFixed(1)}z - ${omega.toFixed(1)}t`;
+    } else if (delta > 0) {
+      yPhaseStr = `${k.toFixed(1)}z - ${omega.toFixed(1)}t + ${deltaStr}`;
+    } else {
+      yPhaseStr = `${k.toFixed(1)}z - ${omega.toFixed(1)}t ${deltaStr}`;
+    }
+
+    const latex = `\\vec{E}(z,t) = \\color{#00d4ff}{${Ex.toFixed(2)}}\\cos(${k.toFixed(1)}z - ${omega.toFixed(1)}t)\\,\\hat{x} + \\color{#ff3a8c}{${Ey.toFixed(2)}}\\cos(${yPhaseStr})\\,\\hat{y}`;
+
+    try {
+      katex.render(latex, document.getElementById('equation-display'), {
+        throwOnError: false,
+        displayMode: false
+      });
+    } catch (e) {
+      document.getElementById('equation-display').textContent = `E = ${Ex.toFixed(2)} cos(${k.toFixed(1)}z − ${omega.toFixed(1)}t) x̂ + ${Ey.toFixed(2)} cos(${k.toFixed(1)}z − ${omega.toFixed(1)}t + ${delta.toFixed(2)}) ŷ`;
+    }
+  }
+
+  return { init, onParamChange };
+})();
+
+
+/* ================================================================
+   ANIMATION LOOP
+   ================================================================ */
+let lastTimestamp = 0;
+
+function animate(timestamp) {
+  requestAnimationFrame(animate);
+
+  if (State.playing) {
+    const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.05); // cap to prevent jumps
+    State.time += dt * State.speed;
+  }
+  lastTimestamp = timestamp;
+
+  Viz3D.update();
+  EllipsePlot.update();
+}
+
+
+/* ================================================================
+   INITIALIZATION
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  Viz3D.init();
+  UI.init();
+  EllipsePlot.resize();
+  requestAnimationFrame(animate);
+});
+</script>
+</body>
+</html>
